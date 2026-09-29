@@ -1,6 +1,18 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlinCompose)
+    `maven-publish`
+}
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties: Properties? = if (keystorePropertiesFile.exists()) {
+    Properties().apply {
+        keystorePropertiesFile.inputStream().use { stream -> load(stream) }
+    }
+} else {
+    null
 }
 
 android {
@@ -18,11 +30,19 @@ android {
     }
 
     signingConfigs {
-        create("release") {
-            storeFile = file("C:/Users/Administrator/Desktop/workday-release-key.jks")
-            storePassword = "123456"
-            keyAlias = "workday"
-            keyPassword = "123456"
+        val hasKeystoreConfig = keystoreProperties != null &&
+            keystoreProperties.containsKey("storeFile") &&
+            keystoreProperties.containsKey("storePassword") &&
+            keystoreProperties.containsKey("keyAlias") &&
+            keystoreProperties.containsKey("keyPassword")
+
+        if (hasKeystoreConfig) {
+            create("release") {
+                storeFile = file(keystoreProperties!!.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
         }
     }
 
@@ -34,7 +54,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            if (keystoreProperties != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 
@@ -69,4 +91,29 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("gpr") {
+            groupId = "daka.work.day"
+            artifactId = "workday"
+            version = "1.0.0"
+
+            artifact(layout.projectDirectory.file("build/outputs/apk/release/app-release.apk"))
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri(
+                "https://maven.pkg.github.com/${System.getenv("GITHUB_ACTOR") ?: "SYSTEM-WinLogon"}/WorkDay"
+            )
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: "SYSTEM-WinLogon"
+                password = System.getenv("GITHUB_TOKEN") ?: ""
+            }
+        }
+    }
 }
