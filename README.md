@@ -20,13 +20,6 @@ WorkDay 是一款 Android 考勤与工时记录应用，适合日常打卡、工
 - Material 3
 - SQLite / 本地数据存储
 
-## 运行方式
-
-1. 安装 Android Studio
-2. 打开本项目
-3. 同步 Gradle
-4. 运行 `app` 模块到模拟器或真实设备
-
 ## 生成发布包
 
 ```bash
